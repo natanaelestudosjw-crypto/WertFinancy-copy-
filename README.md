@@ -30,10 +30,6 @@ O projeto tem como objetivo unir **utilidade no dia a dia** com **aprendizado pr
 * PDO
 * HTML5
 * CSS3
-* JavaScript
-* Chart.js
-* Composer
-* Git/GitHub
 
 O desenvolvimento será realizado de forma incremental, utilizando o projeto como uma oportunidade para estudar **PHP, SQL, arquitetura MVC, APIs, autenticação, segurança e boas práticas de desenvolvimento**.
 
