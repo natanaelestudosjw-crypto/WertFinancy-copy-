@@ -1,0 +1,106 @@
+:root {
+    --fundo: #0B1F1A;
+    --card: #132C24;
+    --borda: #3A4A44;
+    --texto: #F7F5F0;
+    --texto-secundario: rgba(232, 225, 211, 0.7);
+    --dourado: #C9A855;
+    --dourado-claro: #E4C77A;
+    --verde: #1B4D3E;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--fundo);
+    color: var(--texto);
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    margin-bottom: 30px;
+    color: var(--texto);
+}
+
+body > div {
+    width: min(420px, calc(100% - 40px));
+    padding: 32px;
+    border: 1px solid var(--borda);
+    border-radius: 16px;
+    background: var(--card);
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.25);
+}
+
+.login form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+input {
+    width: 100%;
+    height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    outline: none;
+    background: var(--fundo);
+    color: var(--texto);
+    font-size: 14px;
+    transition: 0.25s;
+}
+
+input::placeholder {
+    color: var(--texto-secundario);
+}
+
+input:focus {
+    border-color: var(--dourado);
+    box-shadow: 0 0 0 3px rgba(201, 168, 85, 0.12);
+}
+
+button {
+    height: 46px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--dourado);
+    color: var(--fundo);
+    font-size: 14px;
+    font-weight: bold;
+    transition: 0.25s;
+}
+
+button:hover {
+    transform: translateY(-2px);
+    background: var(--dourado-claro);
+    box-shadow: 0 10px 20px rgba(201, 168, 85, 0.2);
+}
+
+.outro {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--borda);
+}
+
+.outro button {
+    border: 1px solid var(--borda);
+    background: transparent;
+    color: var(--dourado-claro);
+}
+
+.outro button:hover {
+    border-color: var(--dourado);
+    background: rgba(27, 77, 62, 0.5);
+}
