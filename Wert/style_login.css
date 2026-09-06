@@ -60,6 +60,7 @@ input {
 
 input::placeholder {
     color: var(--texto-secundario);
+    text-align: center;
 }
 
 input:focus {

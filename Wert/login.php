@@ -13,7 +13,7 @@ $tituloDaPagina = "Minha Primeira Página PHP";
     <div class="login">
         <form action="">
             <input type="text" name="Nome" placeholder="Usuario">
-            <input type="text" name="Senha" placeholder="Nome">
+            <input type="text" name="Senha" placeholder="Senha">
             <button>Logar</button>
         </form>
     </div>
