@@ -20,5 +20,14 @@ if (ctype_digit((string)$id) && (int)$id > 0) {
     }
 }
 
-header("Location: index.php?sucesso=" . urlencode("Lançamento excluído com sucesso!"));
+$origem = $_GET['origem'] ?? $_POST['origem'] ?? '';
+if ($origem === 'calendario') {
+    $redirect = "calendario.php?sucesso=" . urlencode("Lançamento excluído com sucesso!");
+    if (!empty($_GET['mes']) && !empty($_GET['ano'])) {
+        $redirect .= "&mes=" . (int)$_GET['mes'] . "&ano=" . (int)$_GET['ano'];
+    }
+    header("Location: " . $redirect);
+} else {
+    header("Location: index.php?sucesso=" . urlencode("Lançamento excluído com sucesso!"));
+}
 exit;

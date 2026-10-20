@@ -43,6 +43,9 @@ if (empty($categorias)) {
     $catStmt->execute([$userId]);
     $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+// Data pré-selecionada (caso venha do clique em um dia específico do calendário)
+$dataDefault = (!empty($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date'])) ? $_GET['date'] : date('Y-m-d');
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -64,12 +67,15 @@ if (empty($categorias)) {
         <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
         </a>
-        <a class="sair" href="index.php">Voltar</a>
+        <a class="sair" href="<?= (!empty($_GET['origem']) && $_GET['origem'] === 'calendario') ? 'calendario.php' : 'index.php' ?>">Voltar</a>
     </div>
 </header>
 
 <main class="painel">
 <form class="form-lancamento" action="salvar_gasto.php" method="POST">
+    <?php if (!empty($_GET['origem'])): ?>
+        <input type="hidden" name="origem" value="<?= htmlspecialchars($_GET['origem']) ?>">
+    <?php endif; ?>
 
     <label>Tipo
         <select name="type" id="tipoSelect" required>
@@ -105,11 +111,11 @@ if (empty($categorias)) {
     </label>
 
     <label>Data do lançamento
-        <input type="date" name="date" value="<?= date('Y-m-d') ?>" required>
+        <input type="date" name="date" value="<?= htmlspecialchars($dataDefault) ?>" required>
     </label>
 
     <label>Data de vencimento / pagamento
-        <input type="date" name="due_date" value="<?= date('Y-m-d') ?>">
+        <input type="date" name="due_date" value="<?= htmlspecialchars($dataDefault) ?>">
     </label>
 
     <label>Status

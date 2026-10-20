@@ -116,6 +116,10 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
         </a>
+        <a class="sair" href="calendario.php" title="Abrir Calendário Financeiro">
+            <svg style="width:16px;height:16px;fill:currentColor;flex-shrink:0;" viewBox="0 0 24 24"><path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z"/></svg>
+            Calendário
+        </a>
         <a class="btn-header-primary" href="adicionar_gasto.php">+ Novo lançamento</a>
         <a class="sair" href="logout.php">Sair</a>
     </div>
@@ -256,8 +260,8 @@ const dadosDespesas = <?= json_encode($gastosPorCategoria) ?>;
 const dadosReceitas = <?= json_encode($receitasPorCategoria) ?>;
 
 const palette = [
-    '#39E58C', '#48CFFF', '#FF647C', '#F5B942',
-    '#57F0A2', '#818CF8', '#A78BFA', '#F472B6', '#38BDF8'
+    '#D4AF6C', '#00C896', '#3282F6', '#A78BFA',
+    '#F472B6', '#E5B85C', '#64748B', '#38BDF8'
 ];
 
 const ctx = document.getElementById('graficoCategorias');
@@ -279,7 +283,7 @@ function renderizarGrafico(lista, tituloTipo) {
 
     const labels = temDados ? lista.map(item => item.categoria) : ['Sem ' + tituloTipo.toLowerCase() + ' no mês'];
     const data = temDados ? lista.map(item => parseFloat(item.total)) : [1];
-    const cores = temDados ? palette.slice(0, data.length) : ['#1B2632'];
+    const cores = temDados ? palette.slice(0, data.length) : ['#1A2A30'];
 
     if (chartInstance) {
         chartInstance.destroy();
@@ -292,7 +296,7 @@ function renderizarGrafico(lista, tituloTipo) {
             datasets: [{
                 data: data,
                 backgroundColor: cores,
-                borderColor: '#111821',
+                borderColor: '#0F171B',
                 borderWidth: 2
             }]
         },
@@ -302,11 +306,11 @@ function renderizarGrafico(lista, tituloTipo) {
                 legend: { display: false },
                 tooltip: {
                     enabled: temDados,
-                    backgroundColor: '#1B2632',
-                    borderColor: '#273442',
+                    backgroundColor: '#1A2A30',
+                    borderColor: '#2B3A43',
                     borderWidth: 1,
-                    titleColor: '#F1F5F9',
-                    bodyColor: '#F1F5F9',
+                    titleColor: '#F4EFE3',
+                    bodyColor: '#F4EFE3',
                     padding: 10,
                     callbacks: {
                         label: function(context) {
@@ -377,8 +381,8 @@ function renderizarGraficoComparativo() {
                 {
                     label: 'Entradas',
                     data: labels.map(categoria => Object.hasOwn(entradas, categoria) ? entradas[categoria] : null),
-                    backgroundColor: 'rgba(57, 229, 140, 0.78)',
-                    borderColor: '#39E58C',
+                    backgroundColor: 'rgba(0, 200, 150, 0.78)',
+                    borderColor: '#00C896',
                     borderWidth: 1,
                     borderRadius: 5,
                     categoryPercentage: 0.72,
@@ -388,8 +392,8 @@ function renderizarGraficoComparativo() {
                 {
                     label: 'Saídas',
                     data: labels.map(categoria => Object.hasOwn(saidas, categoria) ? saidas[categoria] : null),
-                    backgroundColor: 'rgba(255, 100, 124, 0.78)',
-                    borderColor: '#FF647C',
+                    backgroundColor: 'rgba(239, 68, 68, 0.78)',
+                    borderColor: '#EF4444',
                     borderWidth: 1,
                     borderRadius: 5,
                     categoryPercentage: 0.72,
@@ -404,29 +408,29 @@ function renderizarGraficoComparativo() {
             scales: {
                 x: {
                     offset: true,
-                    ticks: { color: '#94A3B8', maxRotation: 40, minRotation: 0 },
+                    ticks: { color: '#A7B0BA', maxRotation: 40, minRotation: 0 },
                     grid: { display: false }
                 },
                 y: {
                     beginAtZero: true,
                     ticks: {
-                        color: '#94A3B8',
+                        color: '#A7B0BA',
                         callback: value => 'R$ ' + Number(value).toLocaleString('pt-BR')
                     },
-                    grid: { color: 'rgba(148, 163, 184, 0.12)' }
+                    grid: { color: 'rgba(167, 176, 186, 0.12)' }
                 }
             },
             plugins: {
                 legend: {
                     display: true,
-                    labels: { color: '#F1F5F9', usePointStyle: true, padding: 16 }
+                    labels: { color: '#F4EFE3', usePointStyle: true, padding: 16 }
                 },
                 tooltip: {
-                    backgroundColor: '#1B2632',
-                    borderColor: '#273442',
+                    backgroundColor: '#1A2A30',
+                    borderColor: '#2B3A43',
                     borderWidth: 1,
-                    titleColor: '#F1F5F9',
-                    bodyColor: '#F1F5F9',
+                    titleColor: '#F4EFE3',
+                    bodyColor: '#F4EFE3',
                     callbacks: {
                         label: context => `${context.dataset.label}: R$ ${context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
                     }

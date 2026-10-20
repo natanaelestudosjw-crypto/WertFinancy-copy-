@@ -52,5 +52,13 @@ try {
     die("Não foi possível salvar o lançamento.");
 }
 
-header("Location: index.php");
+$origem = $_POST['origem'] ?? '';
+if ($origem === 'calendario') {
+    $refDate = $dueDate ?: $date;
+    $m = date('n', strtotime($refDate));
+    $y = date('Y', strtotime($refDate));
+    header("Location: calendario.php?mes=$m&ano=$y&sucesso=" . urlencode("Lançamento salvo com sucesso!"));
+} else {
+    header("Location: index.php?sucesso=" . urlencode("Lançamento salvo com sucesso!"));
+}
 exit;

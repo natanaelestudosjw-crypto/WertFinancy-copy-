@@ -69,7 +69,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $id, $userId
             ]);
 
-            header("Location: index.php?sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+            $origem = $_POST['origem'] ?? $_GET['origem'] ?? '';
+            if ($origem === 'calendario') {
+                $refDate = $dueDate ?: $date;
+                $m = date('n', strtotime($refDate));
+                $y = date('Y', strtotime($refDate));
+                header("Location: calendario.php?mes=$m&ano=$y&sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+            } else {
+                header("Location: index.php?sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+            }
             exit;
         } catch (PDOException $e) {
             error_log("Erro ao atualizar lançamento: " . $e->getMessage());
@@ -120,20 +128,23 @@ $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
         <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
         </a>
-        <a class="sair" href="index.php">Voltar</a>
+        <a class="sair" href="<?= (!empty($_GET['origem']) && $_GET['origem'] === 'calendario') ? 'calendario.php' : 'index.php' ?>">Voltar</a>
     </div>
 </header>
 
 <main class="painel">
 
     <?php if (!empty($erro)): ?>
-        <div style="max-width: 480px; margin: 0 auto 16px auto; background: rgba(255, 100, 124, 0.12); border: 1px solid var(--color-danger); color: #FFA1B0; padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px;">
+        <div style="max-width: 480px; margin: 0 auto 16px auto; background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.35); color: #FCA5A5; padding: 12px 16px; border-radius: var(--radius-md); font-size: 13px;">
             <?= htmlspecialchars($erro) ?>
         </div>
     <?php endif; ?>
 
     <form class="form-lancamento" action="editar_gasto.php" method="POST">
         <input type="hidden" name="id" value="<?= $id ?>">
+        <?php if (!empty($_GET['origem']) || !empty($_POST['origem'])): ?>
+            <input type="hidden" name="origem" value="<?= htmlspecialchars($_POST['origem'] ?? $_GET['origem'] ?? '') ?>">
+        <?php endif; ?>
 
         <label>Tipo
             <select name="type" id="tipoSelect" required>

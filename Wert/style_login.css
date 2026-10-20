@@ -1,39 +1,69 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
-    --color-bg: #090D12;
-    --color-sidebar: #0D131B;
-    --color-surface: #111821;
-    --color-surface-hover: #1B2632;
-    --color-surface-secondary: #1B2632;
-    --color-primary: #39E58C;
-    --color-primary-hover: #57F0A2;
-    --color-accent: #48CFFF;
-    --color-text: #F1F5F9;
-    --color-text-secondary: #94A3B8;
-    --color-border: #273442;
-    --color-divider: #202B37;
-    --color-success: #39E58C;
-    --color-danger: #FF647C;
-    --color-warning: #F5B942;
-    --color-info: #48CFFF;
-    --color-on-primary: #090D12;
+    /* Modern Heritage - Backgrounds & Surfaces */
+    --color-bg: #070A0E;
+    --color-sidebar: #0B1116;
+    --color-surface: #0F171B;
+    --color-surface-secondary: #1A2A30;
+    --color-surface-hover: #243740;
+    --color-border: #2B3A43;
+    --color-divider: #1A2830;
+
+    /* Metallic Gold Palette */
+    --color-gold: #D4AF6C;
+    --color-gold-light: #F9E4A7;
+    --color-gold-dark: #A97832;
+    --color-gold-highlight: #E8C982;
+    --color-gold-bronze: #B88642;
+    --gold-gradient: linear-gradient(115deg, #F9E4A7 0%, #D4AF6C 28%, #A97832 60%, #E8C982 78%, #B88642 100%);
+    --gold-gradient-hover: linear-gradient(115deg, #FFF0C2 0%, #E0BC7D 28%, #B8853D 60%, #F0D594 78%, #C7954F 100%);
+
+    /* Primary Tokens */
+    --color-primary: #D4AF6C;
+    --color-primary-hover: #E8C982;
+    --color-on-primary: #17130B;
+    --color-on-gold: #17130B;
+
+    /* Emerald */
+    --color-emerald: #00C896;
+    --color-emerald-dark: #008C69;
+    --emerald-gradient: linear-gradient(135deg, #00C896 0%, #008C69 100%);
+
+    /* Blue */
+    --color-blue: #3282F6;
+    --color-accent: #3282F6;
+    --color-info: #3282F6;
+
+    /* Semantic */
+    --color-success: #00C896;
+    --color-danger: #EF4444;
+    --color-warning: #E5B85C;
+
+    /* Text */
+    --color-text: #F4EFE3;
+    --color-text-secondary: #A7B0BA;
+    --color-text-muted: #788592;
+
+    /* Radii & Shadows */
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
     --radius-xl: 24px;
     --radius-pill: 9999px;
-    --shadow-card: 0 8px 24px rgba(0, 0, 0, 0.18);
+    --shadow-card: 0 14px 40px rgba(0, 0, 0, 0.55);
+    --shadow-gold-subtle: 0 2px 10px rgba(169, 120, 50, 0.22);
+    --shadow-gold-hover: 0 4px 18px rgba(212, 175, 108, 0.32);
 
-    /* Mapeamento de compatibilidade */
+    /* Compatibility Mapping */
     --fundo: var(--color-bg);
     --card: var(--color-surface);
     --borda: var(--color-border);
     --texto: var(--color-text);
     --texto-secundario: var(--color-text-secondary);
-    --dourado: var(--color-primary);
-    --dourado-claro: var(--color-primary-hover);
-    --verde: var(--color-surface-secondary);
+    --dourado: var(--color-gold);
+    --dourado-claro: var(--color-gold-highlight);
+    --verde: var(--color-emerald);
     --vermelho: var(--color-danger);
 }
 
@@ -59,33 +89,35 @@ body {
 .brand-header {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-bottom: 24px;
 }
 
 .brand-icon {
-    width: 34px;
-    height: 34px;
-    background: var(--color-primary);
-    color: var(--color-on-primary);
+    width: 38px;
+    height: 38px;
+    background: var(--gold-gradient);
+    color: var(--color-on-gold);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 18px;
-    box-shadow: 0 0 20px rgba(57, 229, 140, 0.2);
+    font-size: 20px;
+    box-shadow: var(--shadow-gold-subtle);
+    border: 1px solid rgba(249, 228, 167, 0.4);
+    letter-spacing: -0.5px;
 }
 
 .brand-text {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 700;
     letter-spacing: -0.5px;
     color: var(--color-text);
 }
 
 .brand-text span {
-    color: var(--color-primary);
+    color: var(--color-gold);
 }
 
 h1 {
@@ -104,9 +136,9 @@ h1 {
     margin-bottom: 24px;
 }
 
-body > div {
-    width: min(420px, 100%);
-    padding: 32px;
+body > div:not(.brand-header) {
+    width: min(440px, 100%);
+    padding: 34px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     background: var(--color-surface);
@@ -134,33 +166,36 @@ input {
 }
 
 input::placeholder {
-    color: var(--color-text-secondary);
+    color: var(--color-text-muted);
 }
 
 input:focus {
-    border-color: var(--color-accent);
-    outline: 2px solid var(--color-accent);
+    border-color: var(--color-blue);
+    outline: 2px solid rgba(50, 130, 246, 0.35);
     outline-offset: 1px;
 }
 
 button[type="submit"] {
-    height: 46px;
-    border: none;
+    height: 48px;
+    border: 1px solid rgba(249, 228, 167, 0.35);
     border-radius: var(--radius-md);
     cursor: pointer;
-    background: var(--color-primary);
-    color: var(--color-on-primary);
+    background: var(--gold-gradient);
+    color: var(--color-on-gold);
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     font-family: inherit;
-    transition: background 180ms ease, transform 180ms ease;
+    letter-spacing: 0.2px;
+    box-shadow: var(--shadow-gold-subtle);
+    transition: background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
     display: flex;
     align-items: center;
     justify-content: center;
 }
 
 button[type="submit"]:hover {
-    background: var(--color-primary-hover);
+    background: var(--gold-gradient-hover);
+    box-shadow: var(--shadow-gold-hover);
     transform: translateY(-1px);
 }
 
@@ -180,16 +215,16 @@ button[type="submit"]:hover {
     background: var(--color-surface-secondary);
     color: var(--color-text);
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     font-family: inherit;
     cursor: pointer;
     transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
 }
 
 .outro button:hover {
-    background: var(--color-border);
-    border-color: var(--color-accent);
-    color: var(--color-accent);
+    background: var(--color-surface-hover);
+    border-color: var(--color-blue);
+    color: var(--color-blue);
 }
 
 .alerta {
@@ -202,13 +237,13 @@ button[type="submit"]:hover {
 }
 
 .alerta-erro {
-    background: rgba(255, 100, 124, 0.12);
-    border: 1px solid var(--color-danger);
-    color: #FFA1B0;
+    background: rgba(239, 68, 68, 0.10);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
 }
 
 .alerta-sucesso {
-    background: rgba(57, 229, 140, 0.12);
-    border: 1px solid var(--color-primary);
-    color: var(--color-primary);
+    background: rgba(0, 200, 150, 0.12);
+    border: 1px solid rgba(0, 200, 150, 0.35);
+    color: var(--color-emerald);
 }

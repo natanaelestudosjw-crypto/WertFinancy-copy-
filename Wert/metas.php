@@ -81,6 +81,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
         </a>
+        <a class="sair" href="calendario.php" title="Visualizar Calendário">Calendário</a>
         <a class="sair" href="index.php">Voltar ao Painel</a>
     </div>
 </header>
@@ -88,7 +89,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <main class="painel">
 
     <?php if (!empty($erro)): ?>
-        <div style="background: rgba(255, 100, 124, 0.12); border: 1px solid var(--color-danger); color: #FFA1B0; padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 13px;">
+        <div style="background: rgba(239, 68, 68, 0.10); border: 1px solid rgba(239, 68, 68, 0.35); color: #FCA5A5; padding: 12px 16px; border-radius: var(--radius-md); margin-bottom: 20px; font-size: 13px;">
             <?= htmlspecialchars($erro) ?>
         </div>
     <?php endif; ?>
