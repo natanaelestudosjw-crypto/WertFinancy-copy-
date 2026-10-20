@@ -1,0 +1,1 @@
+CREATE TABLE ai_daily_usage (user_id INT NOT NULL, usage_date DATE NOT NULL, requests TINYINT UNSIGNED NOT NULL DEFAULT 0, PRIMARY KEY (user_id, usage_date), CONSTRAINT fk_ai_usage_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

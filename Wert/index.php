@@ -112,7 +112,10 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="brand-text">Wert<span>.</span></div>
         <div class="user-greeting">Olá, <strong><?= htmlspecialchars($_SESSION['user_name'] ?? 'Usuário') ?></strong></div>
     </div>
-    <div style="display:flex; gap:12px; align-items:center;">
+    <div class="acoes-topo">
+        <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+        </a>
         <a class="btn-header-primary" href="adicionar_gasto.php">+ Novo lançamento</a>
         <a class="sair" href="logout.php">Sair</a>
     </div>
@@ -129,11 +132,11 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     <section class="cartoes">
         <div class="cartao">
-            <span class="rotulo">Saldo total</span>
+            <span class="rotulo">Saldo Atual</span>
             <span class="valor">R$ <?= number_format($saldoTotal, 2, ',', '.') ?></span>
         </div>
         <div class="cartao">
-            <span class="rotulo">Receitas do mês</span>
+            <span class="rotulo">Entradas do mês</span>
             <span class="valor positivo">R$ <?= number_format($receitasMes, 2, ',', '.') ?></span>
         </div>
         <div class="cartao">
@@ -141,7 +144,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
             <span class="valor negativo">R$ <?= number_format($despesasMes, 2, ',', '.') ?></span>
         </div>
         <div class="cartao">
-            <span class="rotulo">Resultado do mês</span>
+            <span class="rotulo">Fim do mês</span>
             <span class="valor <?= $resultadoMes >= 0 ? 'positivo' : 'negativo' ?>">
                 R$ <?= number_format($resultadoMes, 2, ',', '.') ?>
             </span>
@@ -183,28 +186,30 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         </div>
 
         <div class="bloco grafico">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
+            <div class="cabecalho-secao cabecalho-grafico">
                 <h2 style="margin:0;">Distribuição por Categoria</h2>
                 <div class="aba-grafico" style="margin-bottom:0;">
                     <button type="button" class="btn-aba ativo" id="btnDespesas">Despesas</button>
                     <button type="button" class="btn-aba" id="btnReceitas">Receitas</button>
+                    <button type="button" class="btn-aba" id="btnComparativo">Comparativo</button>
                 </div>
             </div>
 
             <div id="totalTipoExibicao" class="total-exibicao-grafico"></div>
 
-            <div style="position: relative; max-width: 260px; margin: 10px auto;">
+            <div id="containerGraficoCategorias" class="grafico-categorias-container">
                 <canvas id="graficoCategorias"></canvas>
             </div>
 
             <div id="containerDetalhesCategorias" class="lista-detalhes-categorias"></div>
+
         </div>
 
     </section>
 
     <section class="secao-metas">
         <div class="bloco">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="cabecalho-secao cabecalho-metas">
                 <h2 style="margin:0;">Metas Financeiras</h2>
                 <a class="sair" href="metas.php" style="font-size:12px; padding: 5px 12px;">Gerenciar Metas</a>
             </div>
@@ -256,14 +261,17 @@ const palette = [
 ];
 
 const ctx = document.getElementById('graficoCategorias');
+const containerGrafico = document.getElementById('containerGraficoCategorias');
 const containerDetalhes = document.getElementById('containerDetalhesCategorias');
 const totalTipoExibicao = document.getElementById('totalTipoExibicao');
 const btnDespesas = document.getElementById('btnDespesas');
 const btnReceitas = document.getElementById('btnReceitas');
+const btnComparativo = document.getElementById('btnComparativo');
 
 let chartInstance = null;
 
 function renderizarGrafico(lista, tituloTipo) {
+    containerGrafico.classList.remove('modo-comparativo');
     const totalGeral = lista.reduce((acc, item) => acc + parseFloat(item.total), 0);
     const temDados = lista.length > 0 && totalGeral > 0;
 
@@ -340,16 +348,113 @@ function renderizarGrafico(lista, tituloTipo) {
     });
 }
 
+function renderizarGraficoComparativo() {
+    containerGrafico.classList.add('modo-comparativo');
+    const categorias = [...new Set([
+        ...dadosReceitas.map(item => item.categoria),
+        ...dadosDespesas.map(item => item.categoria)
+    ])];
+    const labels = categorias.length ? categorias : ['Sem lançamentos no período'];
+    const totalPorCategoria = lista => lista.reduce((totais, item) => {
+        totais[item.categoria] = (totais[item.categoria] || 0) + parseFloat(item.total);
+        return totais;
+    }, {});
+    const entradas = totalPorCategoria(dadosReceitas);
+    const saidas = totalPorCategoria(dadosDespesas);
+
+    totalTipoExibicao.textContent = 'Entradas e saídas por categoria';
+    containerDetalhes.innerHTML = '';
+
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                {
+                    label: 'Entradas',
+                    data: labels.map(categoria => Object.hasOwn(entradas, categoria) ? entradas[categoria] : null),
+                    backgroundColor: 'rgba(57, 229, 140, 0.78)',
+                    borderColor: '#39E58C',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    categoryPercentage: 0.72,
+                    barPercentage: 0.9,
+                    skipNull: true
+                },
+                {
+                    label: 'Saídas',
+                    data: labels.map(categoria => Object.hasOwn(saidas, categoria) ? saidas[categoria] : null),
+                    backgroundColor: 'rgba(255, 100, 124, 0.78)',
+                    borderColor: '#FF647C',
+                    borderWidth: 1,
+                    borderRadius: 5,
+                    categoryPercentage: 0.72,
+                    barPercentage: 0.9,
+                    skipNull: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    offset: true,
+                    ticks: { color: '#94A3B8', maxRotation: 40, minRotation: 0 },
+                    grid: { display: false }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: '#94A3B8',
+                        callback: value => 'R$ ' + Number(value).toLocaleString('pt-BR')
+                    },
+                    grid: { color: 'rgba(148, 163, 184, 0.12)' }
+                }
+            },
+            plugins: {
+                legend: {
+                    display: true,
+                    labels: { color: '#F1F5F9', usePointStyle: true, padding: 16 }
+                },
+                tooltip: {
+                    backgroundColor: '#1B2632',
+                    borderColor: '#273442',
+                    borderWidth: 1,
+                    titleColor: '#F1F5F9',
+                    bodyColor: '#F1F5F9',
+                    callbacks: {
+                        label: context => `${context.dataset.label}: R$ ${context.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`
+                    }
+                }
+            }
+        }
+    });
+}
+
 btnDespesas.addEventListener('click', () => {
     btnDespesas.classList.add('ativo');
     btnReceitas.classList.remove('ativo');
+    btnComparativo.classList.remove('ativo');
     renderizarGrafico(dadosDespesas, 'Despesas');
 });
 
 btnReceitas.addEventListener('click', () => {
     btnReceitas.classList.add('ativo');
     btnDespesas.classList.remove('ativo');
+    btnComparativo.classList.remove('ativo');
     renderizarGrafico(dadosReceitas, 'Receitas');
+});
+
+btnComparativo.addEventListener('click', () => {
+    btnComparativo.classList.add('ativo');
+    btnDespesas.classList.remove('ativo');
+    btnReceitas.classList.remove('ativo');
+    renderizarGraficoComparativo();
 });
 
 // Inicializa mostrando Despesas

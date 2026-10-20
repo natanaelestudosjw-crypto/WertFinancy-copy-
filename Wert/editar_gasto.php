@@ -41,6 +41,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $status      = $_POST['status'] ?? 'pending';
     $urgency     = $_POST['urgency'] ?? 'media';
 
+    // Urgência não se aplica a entradas; nunca aceite um valor enviado pelo navegador.
+    if ($type === 'income') {
+        $urgency = 'media';
+    }
+
     if (!in_array($type, ['income', 'expense'], true)
         || !is_numeric($amount) || $amount <= 0
         || !ctype_digit((string)$accountId)
@@ -110,8 +115,11 @@ $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="brand-icon">W</div>
         <div class="brand-text">Wert<span>.</span></div>
     </div>
-    <div style="display:flex; gap:12px; align-items:center;">
+    <div class="acoes-topo">
         <span style="font-size:14px; color:var(--color-text-secondary);">Editar Lançamento</span>
+        <a class="btn-perfil" href="perfil.php" aria-label="Abrir meu perfil" title="Meu perfil">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm0 2c-4.42 0-8 2.24-8 5v1h16v-1c0-2.76-3.58-5-8-5Z"/></svg>
+        </a>
         <a class="sair" href="index.php">Voltar</a>
     </div>
 </header>
@@ -178,7 +186,7 @@ $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
             </select>
         </label>
 
-        <label>Urgência
+        <label id="urgenciaCampo">Urgência
             <select name="urgency" required>
                 <option value="baixa" <?= $lancamento['urgency'] === 'baixa' ? 'selected' : '' ?>>Baixa</option>
                 <option value="media" <?= $lancamento['urgency'] === 'media' ? 'selected' : '' ?>>Média</option>
@@ -220,8 +228,21 @@ function filtrarCategorias() {
     }
 }
 
-tipoSelect.addEventListener('change', filtrarCategorias);
+function atualizarUrgencia() {
+    const campoUrgencia = document.getElementById('urgenciaCampo');
+    const selectUrgencia = campoUrgencia.querySelector('select');
+    const ehEntrada = tipoSelect.value === 'income';
+
+    campoUrgencia.hidden = ehEntrada;
+    selectUrgencia.disabled = ehEntrada;
+}
+
+tipoSelect.addEventListener('change', () => {
+    filtrarCategorias();
+    atualizarUrgencia();
+});
 filtrarCategorias();
+atualizarUrgencia();
 </script>
 
 </body>

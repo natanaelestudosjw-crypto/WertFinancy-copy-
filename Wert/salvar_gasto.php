@@ -17,6 +17,11 @@ $dueDate    = $_POST['due_date'] ?? null;
 $status     = $_POST['status'] ?? 'pending';
 $urgency    = $_POST['urgency'] ?? 'media';
 
+// Urgência não se aplica a entradas; nunca aceite um valor enviado pelo navegador.
+if ($type === 'income') {
+    $urgency = 'media';
+}
+
 if (!in_array($type, ['income', 'expense'], true)
     || !is_numeric($amount) || $amount <= 0
     || !ctype_digit((string)$accountId)
