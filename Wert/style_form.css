@@ -1,0 +1,62 @@
+.form-lancamento {
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow-card);
+}
+
+.form-lancamento label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.form-lancamento input,
+.form-lancamento select {
+    height: 46px;
+    padding: 0 14px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg);
+    color: var(--color-text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.18s ease, outline 0.18s ease;
+}
+
+.form-lancamento input:focus,
+.form-lancamento select:focus {
+    border-color: var(--color-accent);
+    outline: 2px solid var(--color-accent);
+    outline-offset: 1px;
+}
+
+.form-lancamento button[type="submit"] {
+    height: 46px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    transition: background 180ms ease, transform 180ms ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.form-lancamento button[type="submit"]:hover {
+    background: var(--color-primary-hover);
+    transform: translateY(-1px);
+}
