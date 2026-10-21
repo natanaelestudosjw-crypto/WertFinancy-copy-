@@ -1,21 +1,28 @@
 <?php
-session_start();
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
+require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
+
+$userId = Auth::requireLogin();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header("Location: index.php");
     exit;
 }
-require_once "config/database.php";
-$userId = $_SESSION['user_id'];
 
-$type       = $_POST['type'] ?? '';
+if (!Auth::validateCsrf($_POST['csrf_token'] ?? null)) {
+    die("Solicitação inválida (CSRF). Atualize a página e tente novamente.");
+}
+
+$type        = $_POST['type'] ?? '';
 $description = trim($_POST['description'] ?? '');
-$amount     = $_POST['amount'] ?? '';
-$accountId  = $_POST['account_id'] ?? '';
-$categoryId = $_POST['category_id'] ?? '';
-$date       = $_POST['date'] ?? '';
-$dueDate    = $_POST['due_date'] ?? null;
-$status     = $_POST['status'] ?? 'pending';
-$urgency    = $_POST['urgency'] ?? 'media';
+$amount      = $_POST['amount'] ?? '';
+$accountId   = $_POST['account_id'] ?? '';
+$categoryId  = $_POST['category_id'] ?? '';
+$date        = $_POST['date'] ?? '';
+$dueDate     = !empty($_POST['due_date']) ? $_POST['due_date'] : null;
+$status      = $_POST['status'] ?? 'pending';
+$urgency     = $_POST['urgency'] ?? 'media';
 
 // Urgência não se aplica a entradas; nunca aceite um valor enviado pelo navegador.
 if ($type === 'income') {
@@ -33,20 +40,24 @@ if (!in_array($type, ['income', 'expense'], true)
     die("Dados inválidos.");
 }
 
-if (empty($dueDate)) {
-    $dueDate = null;
-}
+$repo = new FinanceRepository($pdo);
 
 try {
-    $stmt = $pdo->prepare(
-        "INSERT INTO transactions
-            (user_id, account_id, category_id, type, amount, description, date, due_date, status, urgency)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    $stmt->execute([
-        $userId, $accountId, $categoryId, $type, $amount,
-        $description, $date, $dueDate, $status, $urgency
+    $salvo = $repo->createTransaction($userId, [
+        'account_id'  => (int)$accountId,
+        'category_id' => (int)$categoryId,
+        'type'        => $type,
+        'amount'      => $amount,
+        'description' => $description,
+        'date'        => $date,
+        'due_date'    => $dueDate,
+        'status'      => $status,
+        'urgency'     => $urgency,
     ]);
+
+    if (!$salvo) {
+        die("Conta ou categoria inválida para este usuário.");
+    }
 } catch (PDOException $e) {
     error_log("Erro ao salvar lançamento: " . $e->getMessage());
     die("Não foi possível salvar o lançamento.");

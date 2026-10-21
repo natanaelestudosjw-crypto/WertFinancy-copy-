@@ -1,30 +1,31 @@
 <?php
-session_start();
+require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
+$userId = Auth::requireLogin();
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !Auth::validateCsrf($_POST['csrf_token'] ?? null)) {
+    header("Location: index.php");
     exit;
 }
 
-require_once "config/database.php";
-
-$userId = $_SESSION['user_id'];
-$id = $_GET['id'] ?? $_POST['id'] ?? 0;
+$id = $_POST['id'] ?? 0;
 
 if (ctype_digit((string)$id) && (int)$id > 0) {
     try {
-        $stmt = $pdo->prepare("DELETE FROM transactions WHERE id = ? AND user_id = ?");
-        $stmt->execute([(int)$id, $userId]);
+        $repo = new FinanceRepository($pdo);
+        $repo->deleteTransaction((int)$id, $userId);
     } catch (PDOException $e) {
         error_log("Erro ao excluir lançamento: " . $e->getMessage());
     }
 }
 
-$origem = $_GET['origem'] ?? $_POST['origem'] ?? '';
+$origem = $_POST['origem'] ?? '';
 if ($origem === 'calendario') {
     $redirect = "calendario.php?sucesso=" . urlencode("Lançamento excluído com sucesso!");
-    if (!empty($_GET['mes']) && !empty($_GET['ano'])) {
-        $redirect .= "&mes=" . (int)$_GET['mes'] . "&ano=" . (int)$_GET['ano'];
+    if (!empty($_POST['mes']) && !empty($_POST['ano'])) {
+        $redirect .= "&mes=" . (int)$_POST['mes'] . "&ano=" . (int)$_POST['ano'];
     }
     header("Location: " . $redirect);
 } else {

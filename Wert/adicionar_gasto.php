@@ -1,48 +1,12 @@
 <?php
-session_start();
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
-    exit;
-}
 require_once "config/database.php";
-$userId = $_SESSION['user_id'];
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-// Carrega contas do usuário
-$contasStmt = $pdo->prepare("SELECT id, name FROM accounts WHERE user_id = ?");
-$contasStmt->execute([$userId]);
-$contas = $contasStmt->fetchAll(PDO::FETCH_ASSOC);
+$userId = Auth::requireLogin();
+$repo = new FinanceRepository($pdo);
 
-// Garante ao menos uma conta se o usuário não possuir
-if (empty($contas)) {
-    $ins = $pdo->prepare("INSERT INTO accounts (user_id, name, initial_balance) VALUES (?, 'Carteira Principal', 0.00)");
-    $ins->execute([$userId]);
-    $contas = [['id' => $pdo->lastInsertId(), 'name' => 'Carteira Principal']];
-}
-
-// Carrega categorias do usuário
-$catStmt = $pdo->prepare("SELECT id, name, type FROM categories WHERE user_id = ? ORDER BY name ASC");
-$catStmt->execute([$userId]);
-$categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Garante categorias padrão caso não existam
-if (empty($categorias)) {
-    $defaults = [
-        ['Alimentação', 'expense'],
-        ['Moradia', 'expense'],
-        ['Transporte', 'expense'],
-        ['Lazer', 'expense'],
-        ['Saúde', 'expense'],
-        ['Salário', 'income'],
-        ['Investimentos', 'income'],
-        ['Outros', 'expense']
-    ];
-    $insCat = $pdo->prepare("INSERT INTO categories (user_id, name, type) VALUES (?, ?, ?)");
-    foreach ($defaults as [$cName, $cType]) {
-        $insCat->execute([$userId, $cName, $cType]);
-    }
-    $catStmt->execute([$userId]);
-    $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
-}
+[$contas, $categorias] = $repo->getOrInitUserAccountsAndCategories($userId);
 
 // Data pré-selecionada (caso venha do clique em um dia específico do calendário)
 $dataDefault = (!empty($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_GET['date'])) ? $_GET['date'] : date('Y-m-d');
@@ -73,6 +37,7 @@ $dataDefault = (!empty($_GET['date']) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $_G
 
 <main class="painel">
 <form class="form-lancamento" action="salvar_gasto.php" method="POST">
+    <?= Auth::csrfField() ?>
     <?php if (!empty($_GET['origem'])): ?>
         <input type="hidden" name="origem" value="<?= htmlspecialchars($_GET['origem']) ?>">
     <?php endif; ?>

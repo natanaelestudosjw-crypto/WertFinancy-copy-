@@ -1,17 +1,17 @@
 <?php
-session_start();
-
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
-    exit;
-}
-
 require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-$userId = $_SESSION['user_id'];
+$userId = Auth::requireLogin();
+$repo = new FinanceRepository($pdo);
 
 // Ação rápida: Alterar status da conta (pago / pendente / cancelado)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['acao']) && $_POST['acao'] === 'toggle_status') {
+    if (!Auth::validateCsrf($_POST['csrf_token'] ?? null)) {
+        header("Location: calendario.php");
+        exit;
+    }
     $transacaoId = (int)($_POST['id'] ?? 0);
     $novoStatus = $_POST['novo_status'] ?? '';
     $mesPost = (int)($_POST['mes'] ?? date('n'));
@@ -78,22 +78,7 @@ if ($criterioData === 'registro') {
 // -------------------------------------------------------------
 // 1. SALDO ATUAL CONSOLIDADO (Realizado em caixa até hoje)
 // -------------------------------------------------------------
-// Saldo inicial de todas as contas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(initial_balance), 0) FROM accounts WHERE user_id = ?");
-$stmt->execute([$userId]);
-$saldoInicial = (float) $stmt->fetchColumn();
-
-// Total histórico de receitas realizadas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND status = 'completed'");
-$stmt->execute([$userId]);
-$totalReceitasRealizadas = (float) $stmt->fetchColumn();
-
-// Total histórico de despesas realizadas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND status = 'completed'");
-$stmt->execute([$userId]);
-$totalDespesasRealizadas = (float) $stmt->fetchColumn();
-
-$saldoAtual = $saldoInicial + $totalReceitasRealizadas - $totalDespesasRealizadas;
+$saldoAtual = $repo->getConsolidatedBalance($userId);
 
 // -------------------------------------------------------------
 // 2. ENTRADAS E SAÍDAS DO MÊS NO CALENDÁRIO
@@ -472,6 +457,7 @@ const totaisPorDia = <?= json_encode($totaisPorDia, JSON_UNESCAPED_UNICODE) ?>;
 const mesAtualNum = <?= $mes ?>;
 const anoAtualNum = <?= $ano ?>;
 const criterioAtual = <?= json_encode($criterioData) ?>;
+const csrfToken = <?= json_encode(Auth::csrfToken()) ?>;
 
 function abrirDetalhesDia(dia) {
     const contas = transacoesPorDia[dia] || [];
@@ -542,6 +528,7 @@ function abrirDetalhesDia(dia) {
                         </div>
                         <div class="modal-botoes-linha">
                             <form method="POST" action="calendario.php" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}">
                                 <input type="hidden" name="acao" value="toggle_status">
                                 <input type="hidden" name="id" value="${item.id}">
                                 <input type="hidden" name="novo_status" value="${proximoStatus}">
@@ -551,10 +538,14 @@ function abrirDetalhesDia(dia) {
                                 <button type="submit" class="btn-acao-lancamento" title="Alterar status de pagamento">${botaoToggleTexto}</button>
                             </form>
                             <a href="editar_gasto.php?id=${item.id}&origem=calendario" class="btn-acao-lancamento" title="Editar este lançamento">Editar</a>
-                            <a href="excluir_gasto.php?id=${item.id}&origem=calendario&mes=${mesAtualNum}&ano=${anoAtualNum}" 
-                               class="btn-acao-lancamento btn-acao-excluir" 
-                               onclick="return confirm('Deseja realmente excluir este lançamento?');" 
-                               title="Excluir lançamento">Excluir</a>
+                            <form method="POST" action="excluir_gasto.php" style="display:inline;" onsubmit="return confirm('Deseja realmente excluir este lançamento?');">
+                                <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}">
+                                <input type="hidden" name="id" value="${item.id}">
+                                <input type="hidden" name="origem" value="calendario">
+                                <input type="hidden" name="mes" value="${mesAtualNum}">
+                                <input type="hidden" name="ano" value="${anoAtualNum}">
+                                <button type="submit" class="btn-acao-lancamento btn-acao-excluir" title="Excluir lançamento">Excluir</button>
+                            </form>
                         </div>
                     </div>
                 </div>

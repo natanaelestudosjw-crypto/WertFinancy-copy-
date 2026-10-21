@@ -1,64 +1,63 @@
 <?php
-session_start();
-
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
-    exit;
-}
-
 require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-$userId = $_SESSION['user_id'];
+$userId = Auth::requireLogin();
+$repo = new FinanceRepository($pdo);
+
 $erro = '';
 $sucesso = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $acao = $_POST['acao'] ?? 'criar';
+    if (!Auth::validateCsrf($_POST['csrf_token'] ?? null)) {
+        $erro = 'Não foi possível validar a solicitação. Atualize a página e tente novamente.';
+    } else {
+        $acao = $_POST['acao'] ?? 'criar';
 
-    if ($acao === 'criar') {
-        $nome          = trim($_POST['name'] ?? '');
-        $targetAmount  = $_POST['target_amount'] ?? '';
-        $currentAmount = $_POST['current_amount'] ?? 0;
-        $deadline      = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
+        if ($acao === 'criar') {
+            $nome          = trim($_POST['name'] ?? '');
+            $targetAmount  = $_POST['target_amount'] ?? '';
+            $currentAmount = $_POST['current_amount'] ?? 0;
+            $deadline      = !empty($_POST['deadline']) ? $_POST['deadline'] : null;
 
-        if (empty($nome) || !is_numeric($targetAmount) || $targetAmount <= 0) {
-            $erro = 'Informe um nome para a meta e um valor-alvo válido maior que zero.';
-        } else {
-            try {
-                $stmt = $pdo->prepare(
-                    "INSERT INTO goals (user_id, name, target_amount, current_amount, deadline)
-                     VALUES (?, ?, ?, ?, ?)"
-                );
-                $stmt->execute([$userId, $nome, $targetAmount, $currentAmount ?: 0, $deadline]);
-                $sucesso = 'Meta criada com sucesso!';
-            } catch (PDOException $e) {
-                error_log("Erro ao criar meta: " . $e->getMessage());
-                $erro = 'Erro ao salvar meta no banco de dados.';
+            if (empty($nome) || !is_numeric($targetAmount) || $targetAmount <= 0) {
+                $erro = 'Informe um nome para a meta e um valor-alvo válido maior que zero.';
+            } else {
+                try {
+                    $stmt = $pdo->prepare(
+                        "INSERT INTO goals (user_id, name, target_amount, current_amount, deadline)
+                         VALUES (?, ?, ?, ?, ?)"
+                    );
+                    $stmt->execute([$userId, $nome, $targetAmount, $currentAmount ?: 0, $deadline]);
+                    $sucesso = 'Meta criada com sucesso!';
+                } catch (PDOException $e) {
+                    error_log("Erro ao criar meta: " . $e->getMessage());
+                    $erro = 'Erro ao salvar meta no banco de dados.';
+                }
             }
-        }
-    } elseif ($acao === 'atualizar') {
-        $goalId        = $_POST['goal_id'] ?? 0;
-        $novoValor     = $_POST['current_amount'] ?? 0;
+        } elseif ($acao === 'atualizar') {
+            $goalId        = $_POST['goal_id'] ?? 0;
+            $novoValor     = $_POST['current_amount'] ?? 0;
 
-        if (ctype_digit((string)$goalId) && is_numeric($novoValor) && $novoValor >= 0) {
-            $stmt = $pdo->prepare("UPDATE goals SET current_amount = ? WHERE id = ? AND user_id = ?");
-            $stmt->execute([$novoValor, $goalId, $userId]);
-            $sucesso = 'Progresso da meta atualizado!';
-        }
-    } elseif ($acao === 'excluir') {
-        $goalId = $_POST['goal_id'] ?? 0;
-        if (ctype_digit((string)$goalId)) {
-            $stmt = $pdo->prepare("DELETE FROM goals WHERE id = ? AND user_id = ?");
-            $stmt->execute([$goalId, $userId]);
-            $sucesso = 'Meta removida.';
+            if (ctype_digit((string)$goalId) && is_numeric($novoValor) && $novoValor >= 0) {
+                $stmt = $pdo->prepare("UPDATE goals SET current_amount = ? WHERE id = ? AND user_id = ?");
+                $stmt->execute([$novoValor, $goalId, $userId]);
+                $sucesso = 'Progresso da meta atualizado!';
+            }
+        } elseif ($acao === 'excluir') {
+            $goalId = $_POST['goal_id'] ?? 0;
+            if (ctype_digit((string)$goalId)) {
+                $stmt = $pdo->prepare("DELETE FROM goals WHERE id = ? AND user_id = ?");
+                $stmt->execute([$goalId, $userId]);
+                $sucesso = 'Meta removida.';
+            }
         }
     }
 }
 
 // Carrega as metas do usuário
-$stmt = $pdo->prepare("SELECT * FROM goals WHERE user_id = ? ORDER BY deadline ASC, id DESC");
-$stmt->execute([$userId]);
-$metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$metas = $repo->getUserGoals($userId);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -135,6 +134,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                             <!-- Formulário rápido para atualizar valor ou excluir -->
                             <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top:1px solid var(--color-border); padding-top:10px;">
                                 <form action="metas.php" method="POST" style="display:flex; gap:8px; align-items:center;">
+                                    <?= Auth::csrfField() ?>
                                     <input type="hidden" name="acao" value="atualizar">
                                     <input type="hidden" name="goal_id" value="<?= $m['id'] ?>">
                                     <input type="number" step="0.01" min="0" name="current_amount" value="<?= $m['current_amount'] ?>" style="height:32px; width:100px; padding:0 8px; font-size:12px;">
@@ -142,6 +142,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </form>
 
                                 <form action="metas.php" method="POST" onsubmit="return confirm('Deseja realmente excluir esta meta?');">
+                                    <?= Auth::csrfField() ?>
                                     <input type="hidden" name="acao" value="excluir">
                                     <input type="hidden" name="goal_id" value="<?= $m['id'] ?>">
                                     <button type="submit" class="btn-acao-lancamento btn-acao-excluir">Excluir</button>
@@ -157,6 +158,7 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="bloco">
             <h2>+ Nova Meta</h2>
             <form action="metas.php" method="POST" class="form-lancamento" style="max-width:100%; padding:0; background:transparent; border:none; box-shadow:none;">
+                <?= Auth::csrfField() ?>
                 <input type="hidden" name="acao" value="criar">
 
                 <label>Nome da Meta

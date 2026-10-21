@@ -1,14 +1,11 @@
 <?php
-session_start();
-
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
-    exit;
-}
-
 require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-$userId = $_SESSION['user_id'];
+$userId = Auth::requireLogin();
+$repo = new FinanceRepository($pdo);
+
 $id = $_GET['id'] ?? $_POST['id'] ?? 0;
 
 if (!ctype_digit((string)$id) || (int)$id <= 0) {
@@ -19,9 +16,7 @@ if (!ctype_digit((string)$id) || (int)$id <= 0) {
 $id = (int)$id;
 
 // Busca o lançamento garantindo que pertença ao usuário logado
-$stmt = $pdo->prepare("SELECT * FROM transactions WHERE id = ? AND user_id = ?");
-$stmt->execute([$id, $userId]);
-$lancamento = $stmt->fetch(PDO::FETCH_ASSOC);
+$lancamento = $repo->findTransactionByIdAndUser($id, $userId);
 
 if (!$lancamento) {
     header("Location: index.php");
@@ -46,7 +41,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $urgency = 'media';
     }
 
-    if (!in_array($type, ['income', 'expense'], true)
+    if (!Auth::validateCsrf($_POST['csrf_token'] ?? null)) {
+        $erro = 'Não foi possível validar a solicitação. Atualize a página e tente novamente.';
+    } elseif (!in_array($type, ['income', 'expense'], true)
         || !is_numeric($amount) || $amount <= 0
         || !ctype_digit((string)$accountId)
         || !ctype_digit((string)$categoryId)
@@ -57,28 +54,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $erro = 'Por favor, preencha todos os campos obrigatórios com valores válidos.';
     } else {
         try {
-            $upd = $pdo->prepare(
-                "UPDATE transactions
-                 SET account_id = ?, category_id = ?, type = ?, amount = ?,
-                     description = ?, date = ?, due_date = ?, status = ?, urgency = ?
-                 WHERE id = ? AND user_id = ?"
-            );
-            $upd->execute([
-                $accountId, $categoryId, $type, $amount,
-                $description, $date, $dueDate, $status, $urgency,
-                $id, $userId
+            $atualizado = $repo->updateTransaction($id, $userId, [
+                'account_id'  => (int)$accountId,
+                'category_id' => (int)$categoryId,
+                'type'        => $type,
+                'amount'      => $amount,
+                'description' => $description,
+                'date'        => $date,
+                'due_date'    => $dueDate,
+                'status'      => $status,
+                'urgency'     => $urgency,
             ]);
 
-            $origem = $_POST['origem'] ?? $_GET['origem'] ?? '';
-            if ($origem === 'calendario') {
-                $refDate = $dueDate ?: $date;
-                $m = date('n', strtotime($refDate));
-                $y = date('Y', strtotime($refDate));
-                header("Location: calendario.php?mes=$m&ano=$y&sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+            if (!$atualizado) {
+                $erro = 'Conta ou categoria selecionada é inválida para sua conta.';
             } else {
-                header("Location: index.php?sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+                $origem = $_POST['origem'] ?? $_GET['origem'] ?? '';
+                if ($origem === 'calendario') {
+                    $refDate = $dueDate ?: $date;
+                    $m = date('n', strtotime($refDate));
+                    $y = date('Y', strtotime($refDate));
+                    header("Location: calendario.php?mes=$m&ano=$y&sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+                } else {
+                    header("Location: index.php?sucesso=" . urlencode("Lançamento atualizado com sucesso!"));
+                }
+                exit;
             }
-            exit;
         } catch (PDOException $e) {
             error_log("Erro ao atualizar lançamento: " . $e->getMessage());
             $erro = 'Erro ao salvar as alterações no banco de dados.';
@@ -97,15 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $lancamento['urgency']     = $urgency;
 }
 
-// Carrega contas do usuário
-$contasStmt = $pdo->prepare("SELECT id, name FROM accounts WHERE user_id = ?");
-$contasStmt->execute([$userId]);
-$contas = $contasStmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Carrega categorias do usuário
-$catStmt = $pdo->prepare("SELECT id, name, type FROM categories WHERE user_id = ? ORDER BY name ASC");
-$catStmt->execute([$userId]);
-$categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
+[$contas, $categorias] = $repo->getOrInitUserAccountsAndCategories($userId);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -141,6 +134,7 @@ $categorias = $catStmt->fetchAll(PDO::FETCH_ASSOC);
     <?php endif; ?>
 
     <form class="form-lancamento" action="editar_gasto.php" method="POST">
+        <?= Auth::csrfField() ?>
         <input type="hidden" name="id" value="<?= $id ?>">
         <?php if (!empty($_GET['origem']) || !empty($_POST['origem'])): ?>
             <input type="hidden" name="origem" value="<?= htmlspecialchars($_POST['origem'] ?? $_GET['origem'] ?? '') ?>">

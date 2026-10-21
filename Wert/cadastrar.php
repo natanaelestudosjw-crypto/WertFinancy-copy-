@@ -1,13 +1,15 @@
 <?php
-session_start();
+require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
+
+Auth::startSession();
 
 // Se o usuário já estiver logado, redireciona ao dashboard
 if (!empty($_SESSION['user_id'])) {
     header("Location: index.php");
     exit;
 }
-
-require_once "config/database.php";
 
 $erro = '';
 $nome = '';
@@ -44,27 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->execute([$nome, $email, $hash]);
                 $userId = (int) $pdo->lastInsertId();
 
-                // Cria uma conta inicial padrão
-                $stmtAccount = $pdo->prepare("INSERT INTO accounts (user_id, name, initial_balance) VALUES (?, 'Carteira Principal', 0.00)");
-                $stmtAccount->execute([$userId]);
-
-                // Categorias essenciais padrão para o novo usuário
-                $categoriasIniciais = [
-                    ['Alimentação', 'expense'],
-                    ['Moradia', 'expense'],
-                    ['Transporte', 'expense'],
-                    ['Lazer', 'expense'],
-                    ['Saúde', 'expense'],
-                    ['Educação', 'expense'],
-                    ['Salário', 'income'],
-                    ['Investimentos', 'income'],
-                    ['Outros', 'income']
-                ];
-
-                $stmtCat = $pdo->prepare("INSERT INTO categories (user_id, name, type) VALUES (?, ?, ?)");
-                foreach ($categoriasIniciais as [$catNome, $catTipo]) {
-                    $stmtCat->execute([$userId, $catNome, $catTipo]);
-                }
+                $repo = new FinanceRepository($pdo);
+                $repo->initNewUserDefaults($userId);
 
                 $pdo->commit();
 

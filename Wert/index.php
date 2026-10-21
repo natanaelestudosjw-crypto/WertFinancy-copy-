@@ -1,100 +1,19 @@
 <?php
-session_start();
-
-if (empty($_SESSION['user_id'])) {
-    header("Location: paginalogar.php");
-    exit;
-}
-
 require_once "config/database.php";
+require_once "src/Auth.php";
+require_once "src/FinanceRepository.php";
 
-$userId = $_SESSION['user_id'];
+$userId = Auth::requireLogin();
+$repo = new FinanceRepository($pdo);
 
-// Saldo inicial das contas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(initial_balance), 0) FROM accounts WHERE user_id = ?");
-$stmt->execute([$userId]);
-$saldoInicial = (float) $stmt->fetchColumn();
-
-// Total histórico de receitas realizadas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND status = 'completed'");
-$stmt->execute([$userId]);
-$totalReceitasRealizadas = (float) $stmt->fetchColumn();
-
-// Total histórico de despesas realizadas
-$stmt = $pdo->prepare("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND status = 'completed'");
-$stmt->execute([$userId]);
-$totalDespesasRealizadas = (float) $stmt->fetchColumn();
-
-// Saldo total acumulado
-$saldoTotal = $saldoInicial + $totalReceitasRealizadas - $totalDespesasRealizadas;
-
-// Receitas do mês atual
-$stmt = $pdo->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM transactions
-     WHERE user_id = ? AND type = 'income'
-     AND MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())"
-);
-$stmt->execute([$userId]);
-$receitasMes = (float) $stmt->fetchColumn();
-
-// Despesas do mês atual
-$stmt = $pdo->prepare(
-    "SELECT COALESCE(SUM(amount), 0) FROM transactions
-     WHERE user_id = ? AND type = 'expense'
-     AND MONTH(date) = MONTH(CURDATE()) AND YEAR(date) = YEAR(CURDATE())"
-);
-$stmt->execute([$userId]);
-$despesasMes = (float) $stmt->fetchColumn();
-
-$resultadoMes = $receitasMes - $despesasMes;
-
-// Despesas por categoria no mês atual
-$stmt = $pdo->prepare(
-    "SELECT COALESCE(c.name, 'Sem categoria') AS categoria, COALESCE(SUM(t.amount), 0) AS total
-     FROM transactions t
-     LEFT JOIN categories c ON c.id = t.category_id
-     WHERE t.user_id = ? AND t.type = 'expense'
-       AND MONTH(t.date) = MONTH(CURDATE()) AND YEAR(t.date) = YEAR(CURDATE())
-     GROUP BY t.category_id, c.name
-     ORDER BY total DESC"
-);
-$stmt->execute([$userId]);
-$gastosPorCategoria = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Receitas por categoria no mês atual
-$stmt = $pdo->prepare(
-    "SELECT COALESCE(c.name, 'Sem categoria') AS categoria, COALESCE(SUM(t.amount), 0) AS total
-     FROM transactions t
-     LEFT JOIN categories c ON c.id = t.category_id
-     WHERE t.user_id = ? AND t.type = 'income'
-       AND MONTH(t.date) = MONTH(CURDATE()) AND YEAR(t.date) = YEAR(CURDATE())
-     GROUP BY t.category_id, c.name
-     ORDER BY total DESC"
-);
-$stmt->execute([$userId]);
-$receitasPorCategoria = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Últimos lançamentos
-$stmt = $pdo->prepare(
-    "SELECT t.id, t.description, t.amount, t.type, t.date, t.due_date, t.status, t.urgency, c.name AS categoria
-     FROM transactions t
-     LEFT JOIN categories c ON c.id = t.category_id
-     WHERE t.user_id = ?
-     ORDER BY t.date DESC, t.id DESC
-     LIMIT 8"
-);
-$stmt->execute([$userId]);
-$ultimosLancamentos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-// Metas financeiras do usuário
-$stmt = $pdo->prepare(
-    "SELECT id, name, target_amount, current_amount, deadline
-     FROM goals
-     WHERE user_id = ?
-     ORDER BY deadline ASC, id DESC"
-);
-$stmt->execute([$userId]);
-$metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$saldoTotal            = $repo->getConsolidatedBalance($userId);
+$receitasMes           = $repo->getCurrentMonthTotalByType($userId, 'income');
+$despesasMes           = $repo->getCurrentMonthTotalByType($userId, 'expense');
+$resultadoMes          = $receitasMes - $despesasMes;
+$gastosPorCategoria    = $repo->getCurrentMonthTotalsByCategory($userId, 'expense');
+$receitasPorCategoria  = $repo->getCurrentMonthTotalsByCategory($userId, 'income');
+$ultimosLancamentos    = $repo->getRecentTransactions($userId, 8);
+$metas                 = $repo->getUserGoals($userId);
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -180,7 +99,11 @@ $metas = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 </span>
                                 <div style="display:flex; gap:6px;">
                                     <a href="editar_gasto.php?id=<?= $l['id'] ?>" class="btn-acao-lancamento" title="Editar este lançamento">Editar</a>
-                                    <a href="excluir_gasto.php?id=<?= $l['id'] ?>" class="btn-acao-lancamento btn-acao-excluir" onclick="return confirm('Deseja realmente excluir este lançamento?');" title="Excluir lançamento">Excluir</a>
+                                    <form method="POST" action="excluir_gasto.php" style="display:inline;" onsubmit="return confirm('Deseja realmente excluir este lançamento?');">
+                                        <?= Auth::csrfField() ?>
+                                        <input type="hidden" name="id" value="<?= $l['id'] ?>">
+                                        <button type="submit" class="btn-acao-lancamento btn-acao-excluir" title="Excluir lançamento">Excluir</button>
+                                    </form>
                                 </div>
                             </div>
                         </li>
